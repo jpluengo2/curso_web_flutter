@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 
 class Lab02StatefulStateless extends StatelessWidget {
   const Lab02StatefulStateless({super.key});

@@ -52,9 +52,14 @@ class FlutterNotebookApp extends StatelessWidget {
       
       // Aplicamos el comportamiento de scroll personalizado
       scrollBehavior: MyCustomScrollBehavior(),
-      
+
+      // --- MEJORA: SOPORTE PARA TEMA CLARO Y OSCURO ---
+      // Se definen ambos temas y se usa `themeMode` para que la app
+      // responda a la configuración del sistema operativo.
       theme: AppTheme.lightTheme,
-      
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+
       // PANTALLA PRINCIPAL
       home: const NotebookHomePage(),
     );

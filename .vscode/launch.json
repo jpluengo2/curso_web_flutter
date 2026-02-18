@@ -5,33 +5,44 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Curso Web (Chrome - Debug)",
+            "name": "Curso Web Flutter (Chrome)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "-d",
+                "chrome",
+                "--web-renderer",
+                "canvaskit" // Usa CanvasKit para un renderizado más consistente.
+            ]
+        },
+        {
+            "name": "Curso Web Flutter (Chrome - Debug)",
             "request": "launch",
             "type": "dart",
             "args": ["-d", "chrome"]
         },
         {
-            "name": "Curso Web (Chrome - Profile)",
+            "name": "Curso Web Flutter (Chrome - Profile)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile",
             "args": ["-d", "chrome"]
         },
         {
-            "name": "Curso Web (Chrome - Release)",
+            "name": "Curso Web Flutter (Chrome - Release)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release",
             "args": ["-d", "chrome"]
         },
         {
-            "name": "Curso Web (Edge)",
+            "name": "Curso Web Flutter (Edge)",
             "request": "launch",
             "type": "dart",
             "args": ["-d", "edge"]
         },
         {
-            "name": "Curso Web (Current Device)",
+            "name": "Curso Web Flutter (Current Device)",
             "request": "launch",
             "type": "dart"
         }
