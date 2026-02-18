@@ -1,11 +1,11 @@
 {
-    "name": "cuaderno_flutter_web",
-    "short_name": "cuaderno_flutter_web",
+    "name": "Curso Web de Flutter",
+    "short_name": "Curso Flutter",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Una aplicación interactiva para aprender Flutter para la web, con lecciones y laboratorios en vivo.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
