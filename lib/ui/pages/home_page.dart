@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:provider/provider.dart';
-
-import '../../models/lesson_model.dart';
 import '../../providers/notebook_provider.dart';
 
 class NotebookHomePage extends StatefulWidget {
