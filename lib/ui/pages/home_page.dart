@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:multi_split_view/multi_split_view.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/lesson_model.dart';
+import '../../providers/notebook_provider.dart';
 
 class NotebookHomePage extends StatefulWidget {
   const NotebookHomePage({super.key});
@@ -13,14 +14,14 @@ class NotebookHomePage extends StatefulWidget {
 }
 
 class _NotebookHomePageState extends State<NotebookHomePage> {
-  // Controlador para los paneles
+  // El estado de la UI (controlador del SplitView) se mantiene aquí.
+  // La lógica de la aplicación (lecciones, selección) se mueve al Provider.
   late MultiSplitViewController _splitController;
 
-  // Estado local
-  List<Lesson> _lessons = [];
-  int _selectedIndex = 0;
-  bool _isLoading = true;
-  String? _error; // Variable para almacenar el mensaje de error
+  // SOLUCIÓN DEFINITIVA: Controladores de scroll explícitos para cada área.
+  // Esto garantiza que no se compartan controladores y elimina la excepción.
+  final ScrollController _listScrollController = ScrollController();
+  final ScrollController _contentScrollController = ScrollController();
 
   @override
   void initState() {
@@ -29,11 +30,8 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
     // ============================================================
     // CORRECCIÓN: INICIALIZACIÓN DEL CONTROLADOR
     // ============================================================
-    // El controlador debe inicializarse UNA SOLA VEZ en initState.
-    // Ponerlo en `build` lo recrea en cada rebuild, perdiendo el estado
-    // de los divisores y causando ineficiencias.
-    // Los `builders` de las áreas son closures, por lo que accederán
-    // al estado (_lessons, _selectedIndex) más reciente cuando se ejecuten.
+    // El controlador se inicializa una vez. Los builders de las áreas
+    // ahora obtendrán los datos directamente del Provider.
     _splitController = MultiSplitViewController(
       areas: [
         // AREA 1: SIDEBAR
@@ -46,61 +44,45 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
         Area(
           flex: 1,
           min: 0.20,
-          builder: (context, area) {
-            if (_lessons.isEmpty) return const SizedBox.shrink();
-            return _buildMarkdownViewer(_lessons[_selectedIndex]);
-          },
+          builder: (context, area) => _buildMarkdownViewer(),
         ),
         // AREA 3: LABORATORIO
         Area(
           flex: 1,
           min: 0.20,
-          builder: (context, area) {
-            if (_lessons.isEmpty) return const SizedBox.shrink();
-            return _buildLaboratoryPanel(_lessons[_selectedIndex]);
-          },
+          builder: (context, area) => _buildLaboratoryPanel(),
         ),
       ],
     );
-    _initLessons();
   }
 
-  Future<void> _initLessons() async {
-    try {
-      final lessons = await Lesson.loadAllLessons();
-      if (mounted) {
-        setState(() {
-          _lessons = lessons;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      // Si ocurre un error durante la carga, lo capturamos aquí.
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
-      }
-    }
+  @override
+  void dispose() {
+    // Es crucial liberar los controladores para evitar fugas de memoria.
+    _listScrollController.dispose();
+    _contentScrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Carga
-    if (_isLoading) {
+    // Observamos el provider para reaccionar a los cambios de estado.
+    final provider = context.watch<NotebookProvider>();
+
+    // 1. Carga inicial
+    if (provider.isInitialLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     // 2. Estado de Error (NUEVO)
-    if (_error != null) {
+    if (provider.error != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Error de Carga')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Text(
-              _error!,
+              provider.error!,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.red, fontSize: 16),
             ),
@@ -110,7 +92,7 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
     }
 
     // 3. Estado de "No encontrado" (si la carga fue exitosa pero no hay lecciones)
-    if (_lessons.isEmpty) {
+    if (provider.lessons.isEmpty) {
       return const Scaffold(
         body: Center(child: Text("No se encontraron lecciones en assets/markdown/")),
       );
@@ -130,7 +112,7 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
             ),
             children: <TextSpan>[
               TextSpan(
-                text: _lessons[_selectedIndex].title,
+                text: provider.selectedLesson?.title ?? 'Cargando...',
                 style: const TextStyle(
                   fontWeight: FontWeight.normal,
                   fontStyle: FontStyle.italic,
@@ -153,8 +135,7 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
           ),
         ),
         child: MultiSplitView(
-          // El controlador ya está inicializado en initState.
-          // Simplemente lo usamos aquí.
+          // El controlador ya está inicializado y listo para usar.
           controller: _splitController, 
         ),
       ),
@@ -209,6 +190,12 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
   // ==========================================
 
   Widget _buildSidebar() {
+    // Usamos 'read' para obtener el provider para acciones (onTap)
+    // y 'watch' para obtener los datos que se reconstruyen (lista y selección).
+    final provider = context.watch<NotebookProvider>();
+    final lessons = provider.lessons;
+    final selectedLesson = provider.selectedLesson;
+
     return Container(
       color: const Color(0xFFF8F9FA),
       child: Column(
@@ -218,11 +205,13 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
               icon: Icons.list_alt_rounded, title: "ÍNDICE DE MATERIAS"),
           Expanded(
             child: ListView.separated(
-              itemCount: _lessons.length,
+              // Asignamos el controlador específico para la lista.
+              controller: _listScrollController,
+              itemCount: lessons.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
               itemBuilder: (context, index) {
-                final lesson = _lessons[index];
-                final isSelected = _selectedIndex == index;
+                final lesson = lessons[index];
+                final isSelected = selectedLesson == lesson;
                 return ListTile(
                   dense: true,
                   hoverColor: Colors.blue.withOpacity(0.05),
@@ -248,7 +237,17 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                       color: isSelected ? Colors.blue.shade900 : Colors.grey.shade800,
                     ),
                   ),
-                  onTap: () => setState(() => _selectedIndex = index),
+                  onTap: () {
+                    // MEJORA: Al hacer clic, primero hacemos scroll hacia arriba en el panel de contenido.
+                    if (_contentScrollController.hasClients) {
+                      _contentScrollController.animateTo(
+                        0,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    }
+                    context.read<NotebookProvider>().selectLesson(lesson);
+                  },
                 );
               },
             ),
@@ -258,58 +257,53 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
     );
   }
 
-  Widget _buildMarkdownViewer(Lesson lesson) {
+  Widget _buildMarkdownViewer() {
+    final provider = context.watch<NotebookProvider>();
+
     return Column(
       children: [
         _buildPanelHeader(
           icon: Icons.article_outlined,
           title: "CONCEPTOS TEÓRICOS BÁSICOS",
         ),
-        Expanded( // <-- El Expanded ahora envuelve al AnimatedSwitcher
+        Expanded(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            transitionBuilder: (child, animation) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            child: FutureBuilder<String>(
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: Container(
               // La key es crucial para que AnimatedSwitcher detecte el cambio
-              key: ValueKey(lesson.markdownPath),
-              future: rootBundle.loadString(lesson.markdownPath),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (!snapshot.hasData || snapshot.hasError) {
-                  return const Center(child: Text("No se pudo cargar el contenido."));
-                }
-                return Scaffold(
-                  backgroundColor: Colors.white,
-                  body: Markdown(
-                    data: snapshot.data!,
-                    selectable: true,
-                    padding: const EdgeInsets.all(24),
-                    styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                      // Estilo para el texto normal (párrafos), manteniendo la fuente que te gustó.
-                      p: const TextStyle(height: 1.5, fontSize: 15),
-
-                      // Estilo para el código inline (`código`)
-                      code: TextStyle(
-                        backgroundColor: Colors.blue.shade50.withOpacity(0.5),
-                        color: Colors.indigo.shade800,
-                        fontFamily: 'monospace',
-                        fontSize: 14 * 0.9,
+              key: ValueKey(provider.selectedLesson?.markdownPath ?? 'initial'),
+              child: provider.isContentLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Scaffold(
+                      backgroundColor: Colors.white,
+                      body: Markdown(
+                        // Asignamos el controlador específico para el contenido.
+                        controller: _contentScrollController,
+                        data: provider.markdownContent,
+                        selectable: true,
+                        padding: const EdgeInsets.all(24),
+                        styleSheet:
+                            MarkdownStyleSheet.fromTheme(Theme.of(context))
+                                .copyWith(
+                          p: const TextStyle(height: 1.5, fontSize: 15),
+                          code: TextStyle(
+                            backgroundColor:
+                                Colors.blue.shade50.withOpacity(0.5),
+                            color: Colors.indigo.shade800,
+                            fontFamily: 'monospace',
+                            fontSize: 14 * 0.9,
+                          ),
+                          codeblockDecoration: BoxDecoration(
+                            color: const Color(0xFFF5F7FA),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          codeblockPadding: const EdgeInsets.all(16),
+                        ),
                       ),
-                      // Estilo para los bloques de código (```código```)
-                      codeblockDecoration: BoxDecoration(
-                        color: const Color(0xFFF5F7FA), // Un fondo gris azulado muy claro
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      codeblockPadding: const EdgeInsets.all(16),
                     ),
-                  ),
-                );
-              },
             ),
           ),
         ),
@@ -317,9 +311,10 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
     );
   }
 
-  Widget _buildLaboratoryPanel(Lesson lesson) {
+  Widget _buildLaboratoryPanel() {
+    final provider = context.watch<NotebookProvider>();
     return Container(
-      color: Colors.blue.shade200, // Azul perla intenso
+      color: Colors.blue.shade200,
       child: Column(
         children: [
           _buildPanelHeader(
@@ -329,12 +324,11 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) {
-                return FadeTransition(opacity: animation, child: child);
-              },
+              transitionBuilder: (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
               child: Padding(
                 // La key es crucial para que AnimatedSwitcher detecte el cambio
-                key: ValueKey(lesson.id),
+                key: ValueKey(provider.selectedLesson?.id ?? 'initial'),
                 padding: const EdgeInsets.all(16.0),
                 child: Container(
                   decoration: BoxDecoration(
@@ -347,7 +341,8 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                     borderRadius: BorderRadius.circular(12),
                     child: ScaffoldMessenger(
                       child: Scaffold(
-                        body: lesson.liveWidget,
+                        // Usamos el getter del provider para obtener el widget del laboratorio.
+                        body: provider.selectedLabWidget,
                       ),
                     ),
                   ),

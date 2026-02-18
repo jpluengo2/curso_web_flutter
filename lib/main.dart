@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:curso_web_flutter/config/app_scroll_behavior.dart';
 import 'package:curso_web_flutter/config/app_theme.dart';
+import 'package:curso_web_flutter/providers/notebook_provider.dart';
+import 'package:provider/provider.dart';
 import 'ui/pages/home_page.dart';
 
 void main() {
-  // El ChangeNotifierProvider se elimina ya que la versión actual de HomePage
-  // no lo está utilizando, para evitar confusiones.
-  runApp(const FlutterNotebookApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => NotebookProvider(),
+      child: const FlutterNotebookApp(),
+    ),
+  );
 }
 
 class FlutterNotebookApp extends StatelessWidget {
