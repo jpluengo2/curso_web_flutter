@@ -1,0 +1,71 @@
+name: curso_web_flutter
+description: "Un curso en web para el estudio de Flutter."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- UTILIDADES UI ---
+  cupertino_icons: ^1.0.8 # Iconos de estilo iOS, buena práctica tenerlo
+  flutter_markdown: ^0.6.18
+  multi_split_view: ^3.6.1 # Fijamos la versión para asegurar compatibilidad
+  flutter_adaptive_scaffold: ^0.1.8
+
+  # --- GESTIÓN DE ESTADO ---
+  # El proyecto menciona Provider y Riverpod. Añadimos Provider por defecto.
+  provider: ^6.1.2
+  # flutter_riverpod: ^2.5.1 # Descomentar si prefieres usar Riverpod
+
+  # --- RED Y APIS ---
+  http: ^1.2.1
+
+  # --- FIREBASE ---
+  # Basado en 15_FIREBASE.md
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  cloud_firestore: ^4.17.5
+  firebase_storage: ^11.7.7
+  firebase_messaging: ^14.9.4
+  google_sign_in: ^6.2.1
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+  # --- HERRAMIENTAS DE BRANDING Y BUILD ---
+  # Basado en 26_CAMBIAR_ICONO_BRANDING.md
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+  rename: ^3.0.2
+
+  # --- TESTING ---
+  # Basado en 16_TESTING.md
+  mockito: ^5.4.4
+  bloc_test: ^9.1.7 # Aunque no se use BLoC, la guía lo menciona
+  faker: ^2.1.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/markdown/
+    - assets/images/
+    - assets/icons/
+    - assets/fonts/
+    - assets/animations/
+
+# --- CONFIGURACIÓN DE PAQUETES (ejemplos, ajustar según necesidad) ---
+# flutter_launcher_icons:
+#   android: "launcher_icon"
+#   ios: true
+#   image_path: "assets/icon/icon.png"
+#
+# flutter_native_splash:
+#   color: "#ffffff"
+#   image: assets/images/splash.png
