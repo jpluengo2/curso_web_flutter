@@ -1,0 +1,39 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Curso Web (Chrome - Debug)",
+            "request": "launch",
+            "type": "dart",
+            "args": ["-d", "chrome"]
+        },
+        {
+            "name": "Curso Web (Chrome - Profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "args": ["-d", "chrome"]
+        },
+        {
+            "name": "Curso Web (Chrome - Release)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": ["-d", "chrome"]
+        },
+        {
+            "name": "Curso Web (Edge)",
+            "request": "launch",
+            "type": "dart",
+            "args": ["-d", "edge"]
+        },
+        {
+            "name": "Curso Web (Current Device)",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}
