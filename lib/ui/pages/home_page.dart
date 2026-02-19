@@ -3,6 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:provider/provider.dart';
 import '../../providers/notebook_provider.dart';
+import '../widgets/panel_card.dart';
 
 class NotebookHomePage extends StatefulWidget {
   const NotebookHomePage({super.key});
@@ -36,19 +37,43 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
         Area(
           flex: 1,
           min: 0.15,
-          builder: (context, area) => _buildSidebar(),
+          builder: (context, area) {
+            final colorScheme = Theme.of(context).colorScheme;
+            return PanelCard(
+              title: 'Índice de Lecciones',
+              icon: Icons.list_alt_rounded,
+              borderColor: colorScheme.primary,
+              child: _buildSidebarContent(),
+            );
+          },
         ),
         // AREA 2: TEORÍA
         Area(
           flex: 1,
           min: 0.20,
-          builder: (context, area) => _buildMarkdownViewer(),
+          builder: (context, area) {
+            final colorScheme = Theme.of(context).colorScheme;
+            return PanelCard(
+              title: 'Conceptos Teóricos',
+              icon: Icons.article_outlined,
+              borderColor: colorScheme.tertiary,
+              child: _buildMarkdownContent(),
+            );
+          },
         ),
         // AREA 3: LABORATORIO
         Area(
           flex: 1,
           min: 0.20,
-          builder: (context, area) => _buildLaboratoryPanel(),
+          builder: (context, area) {
+            final colorScheme = Theme.of(context).colorScheme;
+            return PanelCard(
+              title: 'Laboratorio en Vivo',
+              icon: Icons.science_outlined,
+              borderColor: colorScheme.secondary,
+              child: _buildLaboratoryContent(),
+            );
+          },
         ),
       ],
     );
@@ -98,6 +123,8 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
 
     // 4. Estado de Éxito: Muestra la UI principal
     return Scaffold(
+      // 4. Damos un color diferente al margen alrededor de los paneles.
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
       appBar: AppBar(
         title: RichText(
           overflow: TextOverflow.ellipsis, // Evita el desbordamiento con títulos largos
@@ -124,61 +151,22 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
         foregroundColor: Colors.white,
         elevation: 2,
       ),
-      body: MultiSplitViewTheme(
-        data: MultiSplitViewThemeData(
-          dividerThickness: 5,
-          dividerPainter: DividerPainters.grooved1(
-            color: Colors.grey.shade300,
-            highlightedColor: Colors.blue,
-          ),
-        ),
-        child: MultiSplitView(
-          // El controlador ya está inicializado y listo para usar.
-          controller: _splitController, 
-        ),
-      ),
-    );
-  }
-
-  /// Construye un encabezado de panel estandarizado.
-  Widget _buildPanelHeader({required IconData icon, required String title}) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: Colors.white),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-                color: Colors.white,
-                letterSpacing: 0.5,
-                shadows: [Shadow(blurRadius: 2.0, color: Colors.black26)],
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+      body: Padding(
+        // 3. Necesitamos un margen entre el borde inferior de los paneles y el límite de la pantalla.
+        padding: const EdgeInsets.all(8.0),
+        child: MultiSplitViewTheme(
+          data: MultiSplitViewThemeData(
+            dividerThickness: 5,
+            dividerPainter: DividerPainters.grooved1(
+              color: Colors.grey.shade300,
+              highlightedColor: Colors.blue,
             ),
           ),
-        ],
+          child: MultiSplitView(
+            // El controlador ya está inicializado y listo para usar.
+            controller: _splitController, 
+          ),
+        ),
       ),
     );
   }
@@ -187,22 +175,20 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
   // WIDGETS DE LOS PANELES
   // ==========================================
 
-  Widget _buildSidebar() {
+  /// Construye el contenido del panel del índice de lecciones (la lista).
+  Widget _buildSidebarContent() {
     // Usamos 'read' para obtener el provider para acciones (onTap)
     // y 'watch' para obtener los datos que se reconstruyen (lista y selección).
     final provider = context.watch<NotebookProvider>();
     final lessons = provider.lessons;
     final selectedLesson = provider.selectedLesson;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    return Container(
-      color: const Color(0xFFF8F9FA),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildPanelHeader(
-              icon: Icons.list_alt_rounded, title: "ÍNDICE DE MATERIAS"),
-          Expanded(
-            child: ListView.separated(
+    return Scrollbar(
+      controller: _listScrollController,
+      thumbVisibility: true,
+      child: ListView.separated(
               // Asignamos el controlador específico para la lista.
               controller: _listScrollController,
               itemCount: lessons.length,
@@ -212,19 +198,19 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                 final isSelected = selectedLesson == lesson;
                 return ListTile(
                   dense: true,
-                  hoverColor: Colors.blue.withOpacity(0.05),
+                  hoverColor: colorScheme.primary.withOpacity(0.05),
                   selected: isSelected,
-                  selectedTileColor: Colors.blue.withOpacity(0.1),
+                  selectedTileColor: colorScheme.primary.withOpacity(0.1),
                   leading: CircleAvatar(
                     radius: 12,
                     backgroundColor:
-                        isSelected ? Colors.blue.shade700 : Colors.grey.shade300,
+                        isSelected ? colorScheme.primary : colorScheme.surfaceVariant,
                     child: Text(
                       lesson.id,
                       style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.white : Colors.black54),
+                          color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant),
                     ),
                   ),
                   title: Text(
@@ -232,7 +218,7 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      color: isSelected ? Colors.blue.shade900 : Colors.grey.shade800,
+                      color: isSelected ? colorScheme.primary : colorScheme.onSurface,
                     ),
                   ),
                   onTap: () {
@@ -249,106 +235,73 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                 );
               },
             ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildMarkdownViewer() {
+  /// Construye el contenido del panel de conceptos teóricos (el visor de Markdown).
+  Widget _buildMarkdownContent() {
     final provider = context.watch<NotebookProvider>();
 
-    return Column(
-      children: [
-        _buildPanelHeader(
-          icon: Icons.article_outlined,
-          title: "CONCEPTOS TEÓRICOS BÁSICOS",
-        ),
-        Expanded(
-          child: AnimatedSwitcher(
+    return AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             transitionBuilder: (child, animation) =>
                 FadeTransition(opacity: animation, child: child),
             child: Container(
               // La key es crucial para que AnimatedSwitcher detecte el cambio
               key: ValueKey(provider.selectedLesson?.markdownPath ?? 'initial'),
-              child: provider.isContentLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Scaffold(
-                      backgroundColor: Colors.white,
-                      body: Markdown(
+              child: provider.isContentLoading ? const Center(child: CircularProgressIndicator()) : Scaffold(
+                      // El fondo debe ser transparente para que se vea el del PanelCard.
+                      backgroundColor: Colors.transparent,
+                      body: Scrollbar(
+                        controller: _contentScrollController,
+                        thumbVisibility: true,
+                        child: Markdown(
                         // Asignamos el controlador específico para el contenido.
                         controller: _contentScrollController,
                         data: provider.markdownContent,
                         selectable: true,
                         padding: const EdgeInsets.all(24),
-                        styleSheet:
-                            MarkdownStyleSheet.fromTheme(Theme.of(context))
-                                .copyWith(
+                        styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
                           p: const TextStyle(height: 1.5, fontSize: 15),
+                          // Requerimiento: Tono gris innegociable para el código.
+                          // 6. Los recuadros de código en el panel de la teoría deben tener un gris más pronunciado y el código tener un color diferente.
                           code: TextStyle(
-                            backgroundColor:
-                                Colors.blue.shade50.withOpacity(0.5),
-                            color: Colors.indigo.shade800,
+                            backgroundColor: Colors.grey.shade200,
+                            color: const Color(0xFF3F51B5), // Tono índigo para diferenciarlo.
                             fontFamily: 'monospace',
                             fontSize: 14 * 0.9,
                           ),
                           codeblockDecoration: BoxDecoration(
-                            color: const Color(0xFFF5F7FA),
+                            // Gris mucho más oscuro para el fondo del bloque.
+                            color: Colors.grey.shade300,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade300),
+                            border: Border.all(color: Colors.grey.shade400),
                           ),
                           codeblockPadding: const EdgeInsets.all(16),
                         ),
                       ),
                     ),
+                    ),
             ),
-          ),
-        ),
-      ],
     );
   }
 
-  Widget _buildLaboratoryPanel() {
+  /// Construye el contenido del panel del laboratorio en vivo.
+  Widget _buildLaboratoryContent() {
     final provider = context.watch<NotebookProvider>();
-    return Container(
-      color: Colors.blue.shade200,
-      child: Column(
-        children: [
-          _buildPanelHeader(
-            icon: Icons.science_outlined,
-            title: "LABORATORIO EN VIVO",
-          ),
-          Expanded(
-            child: AnimatedSwitcher(
+    return AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               transitionBuilder: (child, animation) =>
                   FadeTransition(opacity: animation, child: child),
-              child: Padding(
+      child: ScaffoldMessenger(
                 // La key es crucial para que AnimatedSwitcher detecte el cambio
                 key: ValueKey(provider.selectedLesson?.id ?? 'initial'),
-                padding: const EdgeInsets.all(16.0),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: ScaffoldMessenger(
-                      child: Scaffold(
-                        // Usamos el getter del provider para obtener el widget del laboratorio.
-                        body: provider.selectedLabWidget,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        child: Scaffold(
+          // El fondo debe ser transparente para que se vea el del PanelCard.
+          backgroundColor: Colors.transparent,
+          // Usamos el getter del provider para obtener el widget del laboratorio.
+          body: provider.selectedLabWidget,
+        ),
       ),
     );
   }
