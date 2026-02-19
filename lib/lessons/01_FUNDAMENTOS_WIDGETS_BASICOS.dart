@@ -206,7 +206,7 @@ class Lab01FundamentosWidgets extends StatelessWidget {
             child: ListView.builder(
               itemCount: 50,
               itemBuilder: (context, index) => ListTile(
-                leading: CircleAvatar(child: Text("$index"), radius: 15),
+                leading: CircleAvatar(radius: 15, child: Text("$index")),
                 title: Text("Elemento de lista #$index"),
                 subtitle: const Text("Subtítulo descriptivo"),
                 dense: true,

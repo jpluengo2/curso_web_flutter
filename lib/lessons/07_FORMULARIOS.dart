@@ -252,7 +252,7 @@ class _AdvancedFormDemoState extends State<AdvancedFormDemo> {
           // DropdownButtonFormField (NUEVO)
           DropdownButtonFormField<String>(
             decoration: const InputDecoration(labelText: "Rol de Usuario", icon: Icon(Icons.badge), isDense: true),
-            value: _selectedRole,
+            initialValue: _selectedRole,
             items: const [
               DropdownMenuItem(value: "Admin", child: Text("Administrador")),
               DropdownMenuItem(value: "User", child: Text("Usuario")),

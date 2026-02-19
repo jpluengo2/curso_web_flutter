@@ -1,36 +1,36 @@
 import 'package:flutter/material.dart';
 
 // Importamos el archivo del laboratorio real. 
-// Asegúrate de que el archivo LAB_01... esté en la carpeta lib/lessons/
-import '../lessons/01_FUNDAMENTOS_WIDGETS_BASICOS.dart';
-import '../lessons/02_STATEFUL_STATELESS_LIFECYCLE.dart';
-import '../lessons/03_ADVANCED_BUILDERS_STREAMS_FUTURE.dart';
-import '../lessons/04_LISTVIEW_SCROLLVIEW.dart';
-import '../lessons/05_RUTAS_ROUTING.dart';
-import '../lessons/06_SCAFFOLD_NAVEGACION.dart';
-import '../lessons/07_FORMULARIOS.dart';
-import '../lessons/08_TEMAS_THEMES.dart';
-import '../lessons/09_RESPONSIVE_DESIGN.dart';
-import '../lessons/10_ANIMACIONES.dart';
-import '../lessons/11_GESTURES_EVENTOS.dart';
-import '../lessons/12_GESTION_ESTADO.dart';
-import '../lessons/13_PERSISTENCIA_DATOS.dart';
-import '../lessons/14_CONSUMO_APIS.dart';
-import '../lessons/15_FIREBASE.dart';
-import '../lessons/16_TESTING.dart';
-import '../lessons/17_MANEJO_ERRORES.dart';
-import '../lessons/18_WIDGETS_AVANZADOS.dart';
-import '../lessons/19_PERFORMANCE_OPTIMIZATION.dart';
-import '../lessons/20_RIVERPOD_STATE_MANAGEMENT.dart';
-import '../lessons/21_INTERNACIONALIZACION.dart';
-import '../lessons/22_CLEAN_ARCHITECTURE.dart';
-import '../lessons/23_DEVICE_ACCESS.dart';
-import '../lessons/24_MONETIZACION_APPSTORE.dart';
-import '../lessons/25_WEB_DESKTOP.dart';
-import '../lessons/26_CAMBIAR_ICONO_BRANDING.dart';
-import '../lessons/27_ORGANIZACION_CARPETAS.dart';
-import '../lessons/28_PAQUETES_PUB_DEV_EXPANDED.dart';
-import '../lessons/29_PAQUETES_PUB_DEV.dart';
+// Se actualizan todos los imports para usar el estilo lower_case_with_underscores.
+import '../lessons/01_fundamentos_widgets_basicos.dart';
+import '../lessons/02_stateful_stateless_lifecycle.dart';
+import '../lessons/03_advanced_builders_streams_future.dart';
+import '../lessons/04_listview_scrollview.dart';
+import '../lessons/05_rutas_routing.dart';
+import '../lessons/06_scaffold_navegacion.dart';
+import '../lessons/07_formularios.dart';
+import '../lessons/08_temas_themes.dart';
+import '../lessons/09_responsive_design.dart';
+import '../lessons/10_animaciones.dart';
+import '../lessons/11_gestures_eventos.dart';
+import '../lessons/12_gestion_estado.dart';
+import '../lessons/13_persistencia_datos.dart';
+import '../lessons/14_consumo_apis.dart';
+import '../lessons/15_firebase.dart';
+import '../lessons/16_testing.dart';
+import '../lessons/17_manejo_errores.dart';
+import '../lessons/18_widgets_avanzados.dart';
+import '../lessons/19_performance_optimization.dart';
+import '../lessons/20_riverpod_state_management.dart';
+import '../lessons/21_internacionalizacion.dart';
+import '../lessons/22_clean_architecture.dart';
+import '../lessons/23_device_access.dart';
+import '../lessons/24_monetizacion_appstore.dart';
+import '../lessons/25_web_desktop.dart';
+import '../lessons/26_cambiar_icono_branding.dart';
+import '../lessons/27_organizacion_carpetas.dart';
+import '../lessons/28_paquetes_pub_dev_expanded.dart';
+import '../lessons/29_paquetes_pub_dev.dart';
 
 final Map<String, Widget> lessonRegistry = {
   // Conectamos el ID "01" con la clase correcta que creamos antes
@@ -52,7 +52,7 @@ final Map<String, Widget> lessonRegistry = {
   "16": const Lab16Testing(),
   "17": const Lab17ManejoErrores(),
   "18": const Lab18WidgetsAvanzados(),
-  "19": const Lab19Performance(),
+  "19": const Lab19PerformanceOptimization(),
   "20": const Lab20Riverpod(),
   "21": const Lab21Internacionalizacion(),
   "22": const Lab22CleanArch(),

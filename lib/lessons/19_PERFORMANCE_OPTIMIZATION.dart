@@ -1,52 +1,53 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 
-class Lab19Performance extends StatelessWidget {
-  const Lab19Performance({super.key});
+class Lab19PerformanceOptimization extends StatelessWidget {
+  const Lab19PerformanceOptimization({super.key});
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Padding(
+        Padding(
           padding: EdgeInsets.only(bottom: 20),
-          child: Text("Laboratorio 19: Optimización y Rendimiento", textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+          child: Text(
+            "Laboratorio 19: Optimización y Rendimiento",
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          ),
         ),
 
         // --- 1. REBUILD TRACKER ---
-        _buildSectionHeader("1. Costo de Reconstrucción (Build Cost)"),
-        const Text("Este ejemplo muestra cuántas veces se redibuja un widget. Usa 'const' para evitarlo."),
+        _buildSectionHeader(context, "1. Costo de Reconstrucción (Build Cost)"),
+        const Text("Este ejemplo muestra cómo un widget 'const' evita reconstruirse, mientras que uno normal se redibuja con cada cambio de estado del padre."),
         const SizedBox(height: 10),
-        _buildExampleCard("Monitor de Rebuilds", const RebuildTrackerDemo()),
+        _buildExampleCard(context, "Monitor de Rebuilds", const RebuildTrackerDemo()),
         const SizedBox(height: 30),
 
         // --- 2. LISTAS OPTIMIZADAS ---
-        _buildSectionHeader("2. Listas: ListView vs ListView.builder"),
+        _buildSectionHeader(context, "2. Listas: ListView vs ListView.builder"),
         const Text("Diferencia de memoria entre cargar todo (Bad) vs Lazy Loading (Good)."),
         const SizedBox(height: 10),
-        _buildExampleCard("Lista Gigante Optimizada", const OptimizedListDemo()),
+        _buildExampleCard(context, "Lista Gigante Optimizada", const OptimizedListDemo()),
         const SizedBox(height: 30),
 
         // --- 3. REPAINT BOUNDARY ---
-        _buildSectionHeader("3. RepaintBoundary"),
+        _buildSectionHeader(context, "3. RepaintBoundary"),
         const Text("Aísla animaciones complejas para que no obliguen a repintar toda la pantalla."),
         const SizedBox(height: 10),
-        _buildExampleCard("Aislamiento de Pintado", const RepaintBoundaryDemo()),
+        _buildExampleCard(context, "Aislamiento de Pintado", const RepaintBoundaryDemo()),
         const SizedBox(height: 30),
 
         // --- 4. OPACITY VS ANIMATED OPACITY ---
-        _buildSectionHeader("4. Opacity Costoso vs Eficiente"),
+        _buildSectionHeader(context, "4. Opacity Costoso vs Eficiente"),
         const Text("AnimatedOpacity es más eficiente que cambiar la opacidad en un build loop."),
         const SizedBox(height: 10),
-        _buildExampleCard("Transparencia Eficiente", const OpacityDemo()),
+        _buildExampleCard(context, "Transparencia Eficiente", const OpacityDemo()),
         const SizedBox(height: 50),
       ],
     );
   }
-
-  Widget _buildSectionHeader(String title) => Padding(padding: const EdgeInsets.only(bottom: 15), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)), const Divider(thickness: 1)]));
-  Widget _buildExampleCard(String title, Widget content) => Container(decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8), decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: const BorderRadius.vertical(top: Radius.circular(12))), child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54))), Padding(padding: const EdgeInsets.all(15), child: content)]));
 }
 
 // 1. REBUILD TRACKER DEMO
@@ -67,10 +68,10 @@ class _RebuildTrackerDemoState extends State<RebuildTrackerDemo> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            // Widget que NO es const -> Se reconstruye
-            _HeavyWidget(isConst: false),
-            // Widget que SÍ es const -> NO se reconstruye
-            _HeavyWidget(isConst: true),
+            // Widget que NO es const -> Se reconstruye en cada build del padre.
+            _HeavyWidget.isNotConst(),
+            // Widget que SÍ es const -> Flutter lo cachea y NO lo reconstruye.
+            const _HeavyWidget.isConst(),
           ],
         )
       ],
@@ -78,22 +79,77 @@ class _RebuildTrackerDemoState extends State<RebuildTrackerDemo> {
   }
 }
 
-class _HeavyWidget extends StatelessWidget {
-  final bool isConst;
-  // Truco: Generamos un color aleatorio EN EL CONSTRUCTOR si no es const para evidenciar el rebuild
-  final Color color;
+// --- HELPERS ---
 
-  // ignore: prefer_const_constructors_in_immutables
-  _HeavyWidget({super.key, required this.isConst}) : color = Colors.primaries[Random().nextInt(Colors.primaries.length)];
+Widget _buildSectionHeader(BuildContext context, String title) {
+  final theme = Theme.of(context);
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 15),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleLarge?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const Divider(thickness: 1),
+      ],
+    ),
+  );
+}
+
+Widget _buildExampleCard(BuildContext context, String title, Widget content) {
+  final theme = Theme.of(context);
+  return Container(
+    decoration: BoxDecoration(
+      color: theme.cardColor,
+      border: Border.all(color: theme.colorScheme.outlineVariant.withOpacity(0.5)),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerLowest,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: Text(title, style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant)),
+        ),
+        Padding(padding: const EdgeInsets.all(15), child: content),
+      ],
+    ),
+  );
+}
+
+/// Un widget de demostración para visualizar reconstrucciones.
+class _HeavyWidget extends StatelessWidget {
+  final Color color;
+  final String text;
+
+  /// Constructor CONSTANTE.
+  /// Flutter puede cachear y reutilizar instancias de este widget.
+  const _HeavyWidget.isConst({super.key})
+      : color = Colors.grey,
+        text = "SOY CONST\n(Estático)";
+
+  /// Constructor NO constante.
+  /// Genera un color aleatorio para demostrar que se crea una nueva instancia.
+  _HeavyWidget.isNotConst({super.key})
+      : color = Colors.primaries[Random().nextInt(Colors.primaries.length)],
+        text = "NO CONST\n(Rebuild!)";
 
   @override
   Widget build(BuildContext context) {
-    // Si es const, Flutter usa la instancia cacheada y no ejecuta build() de nuevo
     return Container(
       width: 100, height: 100,
-      color: isConst ? Colors.grey : color, // Gris fijo si es const, Discoteca si no lo es
+      color: color,
       alignment: Alignment.center,
-      child: Text(isConst ? "SOY CONST\n(Estático)" : "NO CONST\n(Rebuild!)", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
     );
   }
 }
