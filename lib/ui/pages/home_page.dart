@@ -153,7 +153,8 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
       ),
       body: Padding(
         // 3. Necesitamos un margen entre el borde inferior de los paneles y el límite de la pantalla.
-        padding: const EdgeInsets.all(8.0),
+        // Eliminamos el margen superior (top: 0) para que los paneles se peguen a la AppBar.
+        padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 8.0),
         child: MultiSplitViewTheme(
           data: MultiSplitViewThemeData(
             dividerThickness: 5,
