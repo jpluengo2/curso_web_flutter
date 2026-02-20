@@ -110,7 +110,8 @@ class _PanelCardState extends State<PanelCard> {
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.2),
+                  // CORRECCIÓN: Usamos el color de sombra del tema.
+                  color: theme.shadowColor.withOpacity(0.2),
                   blurRadius: 5,
                   offset: const Offset(0, 3),
                 )
