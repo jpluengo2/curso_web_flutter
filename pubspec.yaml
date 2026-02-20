@@ -28,6 +28,9 @@ dependencies:
   http: ^1.2.0
   dio: ^5.4.0
 
+  flutter_localizations:
+    sdk: flutter
+
   flutter_riverpod: ^2.4.9   # Para Lab 20
   intl: 0.20.2              # Para Lab 21 (Fechas/Monedas)
 
@@ -47,9 +50,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-  # Asegúrate de tener estas líneas para i18n:
-  flutter_localizations:
-    sdk: flutter
 
   # --- HERRAMIENTAS DE BRANDING Y BUILD ---
   # Basado en 26_CAMBIAR_ICONO_BRANDING.md
