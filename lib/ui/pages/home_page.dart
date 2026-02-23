@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-// LIBRERÍAS OFICIALES DE MARKDOWN
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:provider/provider.dart';
 
+// Ajusta las rutas según tu proyecto
 import '../../providers/notebook_provider.dart';
 import '../../config/app_theme.dart';
+import '../../models/lesson_model.dart';
 import '../widgets/panel_card.dart';
 
 // =================================================================
@@ -39,9 +40,9 @@ class CustomPreBuilder extends MarkdownElementBuilder {
         margin: const EdgeInsets.symmetric(vertical: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isDark ? Colors.grey.shade800 : Colors.grey.shade300),
+          border: Border.all(color: isDark ? const Color(0xFF333333) : Colors.grey.shade300),
         ),
         width: double.infinity,
         child: SingleChildScrollView(
@@ -49,7 +50,7 @@ class CustomPreBuilder extends MarkdownElementBuilder {
           child: SelectableText(
             codeText,
             style: TextStyle(
-              color: isDark ? Colors.blue.shade300 : const Color(0xFF3F51B5),
+              color: isDark ? const Color(0xFF9CDCFE) : const Color(0xFF3F51B5),
               fontFamily: 'monospace',
               fontSize: 14 * 0.9,
               height: 1.4,
@@ -63,14 +64,14 @@ class CustomPreBuilder extends MarkdownElementBuilder {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? Colors.amber.withOpacity(0.1) : Colors.amber.withOpacity(0.15),
+          color: isDark ? const Color(0xFF332B00) : Colors.amber.withOpacity(0.15),
           borderRadius: const BorderRadius.only(
             topRight: Radius.circular(8),
             bottomRight: Radius.circular(8),
           ),
           border: Border(
             left: BorderSide(
-              color: isDark ? Colors.amber.shade600 : Colors.amber.shade800, 
+              color: isDark ? Colors.amber.shade700 : Colors.amber.shade800, 
               width: 5,
             ),
           ),
@@ -80,9 +81,9 @@ class CustomPreBuilder extends MarkdownElementBuilder {
           child: SelectableText(
             codeText,
             style: TextStyle(
-              color: isDark ? Colors.amber.shade200 : Colors.amber.shade900,
+              color: isDark ? Colors.amber.shade100 : Colors.amber.shade900,
               fontSize: 14,
-              fontFamily: 'monospace',
+              fontFamily: 'monospace', 
               fontWeight: FontWeight.normal,
               height: 1.5,
             ),
@@ -94,7 +95,221 @@ class CustomPreBuilder extends MarkdownElementBuilder {
 }
 
 // =================================================================
-// 2. PANTALLA PRINCIPAL
+// 2. WIDGETS OPTIMIZADOS (EVITAN EL LAG Y PREVIENEN CRASHES)
+// =================================================================
+
+/// Widget independiente para el Laboratorio
+class LabWidget extends StatelessWidget {
+  const LabWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Usamos context.select para que SOLO se redibuje si cambia el widget del lab
+    final selectedLessonId = context.select<NotebookProvider, String?>((p) => p.selectedLesson?.id);
+    final selectedLabWidget = context.select<NotebookProvider, Widget>((p) => p.selectedLabWidget);
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+      child: Container(
+        key: ValueKey(selectedLessonId ?? 'initial'),
+        color: Colors.transparent,
+        child: selectedLabWidget,
+      ),
+    );
+  }
+}
+
+/// Widget independiente para la Teoría
+class TheoryWidget extends StatelessWidget {
+  const TheoryWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isContentLoading = context.select<NotebookProvider, bool>((p) => p.isContentLoading);
+    final selectedLessonId = context.select<NotebookProvider, String?>((p) => p.selectedLesson?.id);
+    final markdownContent = context.select<NotebookProvider, String>((p) => p.markdownContent);
+    final theme = Theme.of(context);
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+      child: isContentLoading
+          ? const Center(key: ValueKey('loading'), child: CircularProgressIndicator())
+          : _MarkdownScrollable(
+              // Al usar el ID como Key, Flutter DESTRUYE y CREA un nuevo ScrollController
+              // mágicamente reiniciando el scroll a la posición superior sin errores.
+              key: ValueKey(selectedLessonId ?? 'empty'),
+              markdownData: markdownContent,
+              theme: theme,
+            ),
+    );
+  }
+}
+
+/// Maneja su propio controlador de Scroll de forma 100% segura
+class _MarkdownScrollable extends StatefulWidget {
+  final String markdownData;
+  final ThemeData theme;
+  const _MarkdownScrollable({super.key, required this.markdownData, required this.theme});
+
+  @override
+  State<_MarkdownScrollable> createState() => _MarkdownScrollableState();
+}
+
+class _MarkdownScrollableState extends State<_MarkdownScrollable> {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.theme.brightness == Brightness.dark;
+    final bodyColor = isDark ? Colors.grey.shade300 : Colors.black87;
+    final titleColor = isDark ? Colors.white : Colors.black;
+
+    return Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: true,
+      child: Markdown(
+        controller: _scrollController,
+        data: widget.markdownData,
+        selectable: true,
+        padding: const EdgeInsets.all(24),
+        builders: {
+          'pre': CustomPreBuilder(widget.theme.brightness),
+        },
+        styleSheet: MarkdownStyleSheet.fromTheme(widget.theme).copyWith(
+          p: TextStyle(height: 1.5, fontSize: 15, color: bodyColor),
+          h1: TextStyle(color: titleColor, fontWeight: FontWeight.bold),
+          h2: TextStyle(color: titleColor, fontWeight: FontWeight.bold),
+          h3: TextStyle(color: titleColor, fontWeight: FontWeight.bold),
+          h4: TextStyle(color: titleColor, fontWeight: FontWeight.bold),
+          h5: TextStyle(color: titleColor, fontWeight: FontWeight.bold),
+          h6: TextStyle(color: titleColor, fontWeight: FontWeight.bold),
+          code: TextStyle(
+            backgroundColor: isDark ? const Color(0xFF2D2D2D) : Colors.grey.shade200,
+            color: isDark ? const Color(0xFF64B5F6) : const Color(0xFF3F51B5),
+            fontFamily: 'monospace',
+            fontSize: 14 * 0.9,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Widget independiente para el Menú Lateral
+class SidebarWidget extends StatelessWidget {
+  final bool isMobile;
+  const SidebarWidget({super.key, this.isMobile = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final lessons = context.select<NotebookProvider, List<Lesson>>((p) => p.lessons);
+    final selectedLesson = context.select<NotebookProvider, Lesson?>((p) => p.selectedLesson);
+    final theme = Theme.of(context);
+
+    return _SidebarScrollable(
+      lessons: lessons,
+      selectedLesson: selectedLesson,
+      isMobile: isMobile,
+      theme: theme,
+    );
+  }
+}
+
+class _SidebarScrollable extends StatefulWidget {
+  final List<Lesson> lessons;
+  final Lesson? selectedLesson;
+  final bool isMobile;
+  final ThemeData theme;
+
+  const _SidebarScrollable({
+    required this.lessons,
+    required this.selectedLesson,
+    required this.isMobile,
+    required this.theme,
+  });
+
+  @override
+  State<_SidebarScrollable> createState() => _SidebarScrollableState();
+}
+
+class _SidebarScrollableState extends State<_SidebarScrollable> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = widget.theme.colorScheme;
+    final isDark = widget.theme.brightness == Brightness.dark;
+
+    return Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: true,
+      child: ListView.separated(
+        controller: _scrollController,
+        itemCount: widget.lessons.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final lesson = widget.lessons[index];
+          final isSelected = widget.selectedLesson == lesson;
+          return ListTile(
+            dense: true,
+            hoverColor: colorScheme.primary.withOpacity(0.05),
+            selected: isSelected,
+            selectedTileColor: colorScheme.primary.withOpacity(0.1),
+            leading: CircleAvatar(
+              radius: 12,
+              backgroundColor: isSelected ? colorScheme.primary : colorScheme.surfaceVariant,
+              child: Text(
+                lesson.id,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant),
+              ),
+            ),
+            title: Text(
+              lesson.title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? colorScheme.primary : (isDark ? Colors.white70 : Colors.black87),
+              ),
+            ),
+            onTap: () {
+              // NO MAS jumpTo(0). Al seleccionar, la Teoría se reinicia de manera limpia.
+              context.read<NotebookProvider>().selectLesson(lesson);
+              if (widget.isMobile) {
+                Navigator.of(context).pop(); // Cierra el drawer suavemente
+              }
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// =================================================================
+// 3. PANTALLA PRINCIPAL (AHORA OPTIMIZADA)
 // =================================================================
 class NotebookHomePage extends StatefulWidget {
   const NotebookHomePage({super.key});
@@ -105,64 +320,49 @@ class NotebookHomePage extends StatefulWidget {
 
 class _NotebookHomePageState extends State<NotebookHomePage> {
   late MultiSplitViewController _splitController;
-
-  final ScrollController _listScrollController = ScrollController();
-  final ScrollController _contentScrollController = ScrollController();
-
   int _mobileTabIndex = 0;
-  
   bool _isDarkMode = false; 
 
   @override
   void initState() {
     super.initState();
+    // Usar 'const' en los widgets internos es el secreto para evitar que Flutter
+    // ralentice la aplicación al ajustar tamaños en PC o rotar la pantalla.
     _splitController = MultiSplitViewController(
       areas: [
         Area(
-          flex: 1,
-          min: 0.15,
+          flex: 1, min: 0.15,
           builder: (context, area) => PanelCard(
             title: 'Índice de Lecciones',
             icon: Icons.list_alt_rounded,
             borderColor: Theme.of(context).colorScheme.primary,
-            child: _buildSidebarContent(isMobile: false),
+            child: const SidebarWidget(isMobile: false),
           ),
         ),
         Area(
-          flex: 1,
-          min: 0.20,
+          flex: 1, min: 0.20,
           builder: (context, area) => PanelCard(
             title: 'Conceptos Teóricos',
             icon: Icons.article_outlined,
             borderColor: Theme.of(context).colorScheme.tertiary,
-            child: _buildMarkdownContent(),
+            child: const TheoryWidget(),
           ),
         ),
         Area(
-          flex: 1,
-          min: 0.20,
+          flex: 1, min: 0.20,
           builder: (context, area) => PanelCard(
             title: 'Laboratorio en Vivo',
             icon: Icons.science_outlined,
             borderColor: Theme.of(context).colorScheme.secondary,
-            child: _buildLaboratoryContent(),
+            child: const LabWidget(),
           ),
         ),
       ],
     );
   }
 
-  @override
-  void dispose() {
-    _listScrollController.dispose();
-    _contentScrollController.dispose();
-    super.dispose();
-  }
-
   void _toggleTheme(bool isDark) {
-    setState(() {
-      _isDarkMode = isDark;
-    });
+    setState(() => _isDarkMode = isDark);
   }
 
   void _showSettingsDialog() {
@@ -192,7 +392,6 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                     },
                   ),
                   const Divider(),
-                  // NUEVO DISEÑO DEL IDIOMA: Línea simple, en gris y no interactiva
                   const ListTile(
                     leading: Icon(Icons.language, color: Colors.grey),
                     title: Text('Idioma (próximamente)', style: TextStyle(color: Colors.grey)),
@@ -220,36 +419,36 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
       data: activeTheme,
       child: Builder(
         builder: (context) {
-          final provider = context.watch<NotebookProvider>();
+          // Ya no usamos watch() en toda la página, esto mejora el rendimiento brutalmente
+          final isInitialLoading = context.select<NotebookProvider, bool>((p) => p.isInitialLoading);
+          final error = context.select<NotebookProvider, String?>((p) => p.error);
+          final isEmpty = context.select<NotebookProvider, bool>((p) => p.lessons.isEmpty);
+          final lessonTitle = context.select<NotebookProvider, String>((p) => p.selectedLesson?.title ?? 'Cargando...');
 
-          if (provider.isInitialLoading) {
+          if (isInitialLoading) {
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               body: const Center(child: CircularProgressIndicator())
             );
           }
 
-          if (provider.error != null) {
+          if (error != null) {
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
               appBar: AppBar(title: const Text('Error de Carga')),
               body: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: Text(
-                    provider.error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red, fontSize: 16),
-                  ),
+                  child: Text(error, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red, fontSize: 16)),
                 ),
               ),
             );
           }
 
-          if (provider.lessons.isEmpty) {
+          if (isEmpty) {
             return Scaffold(
               backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              body: const Center(child: Text("No se encontraron lecciones en assets/markdown/")),
+              body: const Center(child: Text("No se encontraron lecciones.")),
             );
           }
 
@@ -264,19 +463,11 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
                       text: 'Curso Web de Flutter: ',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                       children: <TextSpan>[
                         TextSpan(
-                          text: provider.selectedLesson?.title ?? 'Cargando...',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.normal,
-                            fontStyle: FontStyle.italic,
-                            color: Colors.white70,
-                          ),
+                          text: lessonTitle,
+                          style: const TextStyle(fontWeight: FontWeight.normal, fontStyle: FontStyle.italic, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -304,7 +495,7 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                               title: 'Índice',
                               icon: Icons.list_alt_rounded,
                               borderColor: Theme.of(context).colorScheme.primary,
-                              child: _buildSidebarContent(isMobile: true), 
+                              child: const SidebarWidget(isMobile: true), 
                             ),
                           ),
                         ),
@@ -314,26 +505,20 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                 bottomNavigationBar: isMobile
                     ? BottomNavigationBar(
                         currentIndex: _mobileTabIndex,
+                        // Al usar CONST en los hijos de la vista móvil, este cambio de estado
+                        // se vuelve ultra-rápido porque el texto NO se vuelve a renderizar
                         onTap: (index) => setState(() => _mobileTabIndex = index),
                         selectedItemColor: Colors.blue.shade900,
                         items: const [
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.article_outlined),
-                            label: 'Teoría',
-                          ),
-                          BottomNavigationBarItem(
-                            icon: Icon(Icons.science_outlined),
-                            label: 'Laboratorio',
-                          ),
+                          BottomNavigationBarItem(icon: Icon(Icons.article_outlined), label: 'Teoría'),
+                          BottomNavigationBarItem(icon: Icon(Icons.science_outlined), label: 'Laboratorio'),
                         ],
                       )
                     : null,
 
                 body: Padding(
                   padding: const EdgeInsets.fromLTRB(8.0, 0, 8.0, 8.0),
-                  child: isMobile 
-                      ? _buildMobileBody(context) 
-                      : _buildDesktopBody(context),
+                  child: isMobile ? _buildMobileBody(context) : _buildDesktopBody(context),
                 ),
               );
             },
@@ -348,15 +533,11 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
       data: MultiSplitViewThemeData(
         dividerThickness: 5,
         dividerPainter: DividerPainters.grooved1(
-          color: Theme.of(context).brightness == Brightness.dark 
-              ? Colors.grey.shade800 
-              : Colors.grey.shade300,
+          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade300,
           highlightedColor: Colors.blue,
         ),
       ),
-      child: MultiSplitView(
-        controller: _splitController,
-      ),
+      child: MultiSplitView(controller: _splitController),
     );
   }
 
@@ -368,132 +549,15 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
           title: 'Conceptos Teóricos',
           icon: Icons.article_outlined,
           borderColor: Theme.of(context).colorScheme.tertiary,
-          child: _buildMarkdownContent(),
+          child: const TheoryWidget(), // RENDIMIENTO: El 'const' impide ralentizaciones
         ),
         PanelCard(
           title: 'Laboratorio en Vivo',
           icon: Icons.science_outlined,
           borderColor: Theme.of(context).colorScheme.secondary,
-          child: _buildLaboratoryContent(),
+          child: const LabWidget(),
         ),
       ],
-    );
-  }
-
-  Widget _buildSidebarContent({required bool isMobile}) {
-    final provider = context.watch<NotebookProvider>();
-    final lessons = provider.lessons;
-    final selectedLesson = provider.selectedLesson;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Scrollbar(
-      controller: _listScrollController,
-      thumbVisibility: true,
-      child: ListView.separated(
-        controller: _listScrollController,
-        itemCount: lessons.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final lesson = lessons[index];
-          final isSelected = selectedLesson == lesson;
-          return ListTile(
-            dense: true,
-            hoverColor: colorScheme.primary.withOpacity(0.05),
-            selected: isSelected,
-            selectedTileColor: colorScheme.primary.withOpacity(0.1),
-            leading: CircleAvatar(
-              radius: 12,
-              backgroundColor: isSelected ? colorScheme.primary : colorScheme.surfaceVariant,
-              child: Text(
-                lesson.id,
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant),
-              ),
-            ),
-            title: Text(
-              lesson.title,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-              ),
-            ),
-            onTap: () {
-              if (_contentScrollController.hasClients) {
-                _contentScrollController.animateTo(
-                  0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              }
-              context.read<NotebookProvider>().selectLesson(lesson);
-              
-              if (isMobile) {
-                Navigator.of(context).pop();
-              }
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildMarkdownContent() {
-    final provider = context.watch<NotebookProvider>();
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-      child: Container(
-        key: ValueKey(provider.selectedLesson?.markdownPath ?? 'initial'),
-        child: provider.isContentLoading 
-          ? const Center(child: CircularProgressIndicator()) 
-          : Scaffold(
-              backgroundColor: Colors.transparent,
-              body: Scrollbar(
-                controller: _contentScrollController,
-                thumbVisibility: true,
-                child: Markdown(
-                  controller: _contentScrollController,
-                  data: provider.markdownContent,
-                  selectable: true,
-                  padding: const EdgeInsets.all(24),
-                  builders: {
-                    'pre': CustomPreBuilder(theme.brightness),
-                  },
-                  styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
-                    p: const TextStyle(height: 1.5, fontSize: 15),
-                    code: TextStyle(
-                      backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                      color: isDark ? Colors.blue.shade300 : const Color(0xFF3F51B5),
-                      fontFamily: 'monospace',
-                      fontSize: 14 * 0.9,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-      ),
-    );
-  }
-
-  Widget _buildLaboratoryContent() {
-    final provider = context.watch<NotebookProvider>();
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-      child: ScaffoldMessenger(
-        key: ValueKey(provider.selectedLesson?.id ?? 'initial'),
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: provider.selectedLabWidget,
-        ),
-      ),
     );
   }
 }
