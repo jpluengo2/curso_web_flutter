@@ -12,7 +12,7 @@ dependencies:
 
   # --- UTILIDADES UI ---
   cupertino_icons: ^1.0.8 # Iconos de estilo iOS, buena práctica tenerlo
-  flutter_markdown: ^0.6.18
+  flutter_markdown: ^0.7.1 # Versión actualizada que incluye codeBlockBuilder
   multi_split_view: ^3.6.1 # Fijamos la versión para asegurar compatibilidad
   flutter_adaptive_scaffold: ^0.1.8
 
