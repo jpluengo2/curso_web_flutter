@@ -5,11 +5,13 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:provider/provider.dart';
 
-// Ajusta las rutas según tu proyecto
 import '../../providers/notebook_provider.dart';
 import '../../config/app_theme.dart';
 import '../../models/lesson_model.dart';
 import '../widgets/panel_card.dart';
+
+// NUEVO: Importamos nuestro buscador aislado
+import '../delegates/lesson_search_delegate.dart'; 
 
 // =================================================================
 // 1. BUILDER PARA DIFERENCIAR PANELES DE INFORMACIÓN Y CÓDIGO
@@ -98,13 +100,11 @@ class CustomPreBuilder extends MarkdownElementBuilder {
 // 2. WIDGETS OPTIMIZADOS (EVITAN EL LAG Y PREVIENEN CRASHES)
 // =================================================================
 
-/// Widget independiente para el Laboratorio
 class LabWidget extends StatelessWidget {
   const LabWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Usamos context.select para que SOLO se redibuje si cambia el widget del lab
     final selectedLessonId = context.select<NotebookProvider, String?>((p) => p.selectedLesson?.id);
     final selectedLabWidget = context.select<NotebookProvider, Widget>((p) => p.selectedLabWidget);
 
@@ -120,7 +120,6 @@ class LabWidget extends StatelessWidget {
   }
 }
 
-/// Widget independiente para la Teoría
 class TheoryWidget extends StatelessWidget {
   const TheoryWidget({super.key});
 
@@ -137,8 +136,6 @@ class TheoryWidget extends StatelessWidget {
       child: isContentLoading
           ? const Center(key: ValueKey('loading'), child: CircularProgressIndicator())
           : _MarkdownScrollable(
-              // Al usar el ID como Key, Flutter DESTRUYE y CREA un nuevo ScrollController
-              // mágicamente reiniciando el scroll a la posición superior sin errores.
               key: ValueKey(selectedLessonId ?? 'empty'),
               markdownData: markdownContent,
               theme: theme,
@@ -147,7 +144,6 @@ class TheoryWidget extends StatelessWidget {
   }
 }
 
-/// Maneja su propio controlador de Scroll de forma 100% segura
 class _MarkdownScrollable extends StatefulWidget {
   final String markdownData;
   final ThemeData theme;
@@ -209,7 +205,6 @@ class _MarkdownScrollableState extends State<_MarkdownScrollable> {
   }
 }
 
-/// Widget independiente para el Menú Lateral
 class SidebarWidget extends StatelessWidget {
   final bool isMobile;
   const SidebarWidget({super.key, this.isMobile = false});
@@ -295,10 +290,9 @@ class _SidebarScrollableState extends State<_SidebarScrollable> {
               ),
             ),
             onTap: () {
-              // NO MAS jumpTo(0). Al seleccionar, la Teoría se reinicia de manera limpia.
               context.read<NotebookProvider>().selectLesson(lesson);
               if (widget.isMobile) {
-                Navigator.of(context).pop(); // Cierra el drawer suavemente
+                Navigator.of(context).pop(); 
               }
             },
           );
@@ -309,7 +303,7 @@ class _SidebarScrollableState extends State<_SidebarScrollable> {
 }
 
 // =================================================================
-// 3. PANTALLA PRINCIPAL (AHORA OPTIMIZADA)
+// 3. PANTALLA PRINCIPAL
 // =================================================================
 class NotebookHomePage extends StatefulWidget {
   const NotebookHomePage({super.key});
@@ -326,8 +320,6 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
   @override
   void initState() {
     super.initState();
-    // Usar 'const' en los widgets internos es el secreto para evitar que Flutter
-    // ralentice la aplicación al ajustar tamaños en PC o rotar la pantalla.
     _splitController = MultiSplitViewController(
       areas: [
         Area(
@@ -419,7 +411,6 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
       data: activeTheme,
       child: Builder(
         builder: (context) {
-          // Ya no usamos watch() en toda la página, esto mejora el rendimiento brutalmente
           final isInitialLoading = context.select<NotebookProvider, bool>((p) => p.isInitialLoading);
           final error = context.select<NotebookProvider, String?>((p) => p.error);
           final isEmpty = context.select<NotebookProvider, bool>((p) => p.lessons.isEmpty);
@@ -476,6 +467,28 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                   foregroundColor: Colors.white,
                   elevation: 2,
                   actions: [
+                    // ==========================================
+                    // ¡NUESTRO NUEVO BOTÓN DE BÚSQUEDA!
+                    // ==========================================
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      tooltip: 'Buscar Lección',
+                      onPressed: () async {
+                        // 1. Obtenemos las lecciones del provider
+                        final provider = context.read<NotebookProvider>();
+                        
+                        // 2. Abrimos la pantalla transparente de búsqueda
+                        final selectedLesson = await showSearch<Lesson?>(
+                          context: context,
+                          delegate: LessonSearchDelegate(provider.lessons),
+                        );
+                        
+                        // 3. Si el usuario tocó un resultado, cargamos esa lección
+                        if (selectedLesson != null && context.mounted) {
+                          provider.selectLesson(selectedLesson);
+                        }
+                      },
+                    ),
                     IconButton(
                       icon: const Icon(Icons.settings),
                       tooltip: 'Configuración',
@@ -505,8 +518,6 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
                 bottomNavigationBar: isMobile
                     ? BottomNavigationBar(
                         currentIndex: _mobileTabIndex,
-                        // Al usar CONST en los hijos de la vista móvil, este cambio de estado
-                        // se vuelve ultra-rápido porque el texto NO se vuelve a renderizar
                         onTap: (index) => setState(() => _mobileTabIndex = index),
                         selectedItemColor: Colors.blue.shade900,
                         items: const [
@@ -549,7 +560,7 @@ class _NotebookHomePageState extends State<NotebookHomePage> {
           title: 'Conceptos Teóricos',
           icon: Icons.article_outlined,
           borderColor: Theme.of(context).colorScheme.tertiary,
-          child: const TheoryWidget(), // RENDIMIENTO: El 'const' impide ralentizaciones
+          child: const TheoryWidget(), 
         ),
         PanelCard(
           title: 'Laboratorio en Vivo',
