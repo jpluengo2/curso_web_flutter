@@ -7,15 +7,17 @@ class Lesson {
   final String title;
   final String markdownPath;
   final Widget liveWidget; 
-  // NUEVO: Almacenaremos el texto completo de la teoría aquí
   final String content; 
+  // NUEVO: Guardaremos el código del laboratorio aquí
+  final String labCode; 
 
   Lesson({
     required this.id,
     required this.title,
     required this.markdownPath,
     required this.liveWidget, 
-    required this.content, // Requerido al construir
+    required this.content, 
+    required this.labCode, // Requerido al construir
   });
 
   static Future<List<Lesson>> loadAllLessons() async {
@@ -25,9 +27,12 @@ class Lesson {
       final List<String> allAssets = manifest.listAssets();
 
       final List<String> markdownPaths = allAssets
-          .where((String key) => 
-              key.toLowerCase().contains('markdown') && 
-              key.toLowerCase().endsWith('.md'))
+          .where((String key) => key.toLowerCase().contains('markdown') && key.toLowerCase().endsWith('.md'))
+          .toList();
+
+      // NUEVO: Listamos también todos los archivos .dart de la carpeta lessons
+      final List<String> dartPaths = allAssets
+          .where((String key) => key.toLowerCase().startsWith('lib/lessons/') && key.toLowerCase().endsWith('.dart'))
           .toList();
 
       if (markdownPaths.isEmpty) {
@@ -62,8 +67,16 @@ class Lesson {
             ),
           );
 
-          // MAGIA AQUÍ: Cargamos el texto completo de la teoría en memoria
           final String fileContent = await rootBundle.loadString(path);
+          
+          // NUEVO: Buscamos el archivo .dart que coincida con el ID y cargamos su código fuente
+          String sourceCode = "Código fuente no disponible para este laboratorio.";
+          try {
+            final dartFilePath = dartPaths.firstWhere((p) => p.split('/').last.startsWith('${id}_'));
+            sourceCode = await rootBundle.loadString(dartFilePath);
+          } catch (_) {
+            // Si el archivo .dart no existe en la carpeta, dejamos el mensaje de error por defecto
+          }
 
           loadedLessons.add(
             Lesson(
@@ -71,7 +84,8 @@ class Lesson {
               title: title, 
               markdownPath: path, 
               liveWidget: widget,
-              content: fileContent, // Guardamos el texto para poder buscarlo luego
+              content: fileContent,
+              labCode: sourceCode, // Guardamos el código fuente
             )
           );
         }

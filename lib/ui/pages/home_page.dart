@@ -12,6 +12,7 @@ import '../widgets/panel_card.dart';
 
 // NUEVO: Importamos nuestro buscador aislado
 import '../delegates/lesson_search_delegate.dart'; 
+import '../widgets/lab_code_viewer.dart';
 
 // =================================================================
 // 1. BUILDER PARA DIFERENCIAR PANELES DE INFORMACIÓN Y CÓDIGO
@@ -107,6 +108,10 @@ class LabWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedLessonId = context.select<NotebookProvider, String?>((p) => p.selectedLesson?.id);
     final selectedLabWidget = context.select<NotebookProvider, Widget>((p) => p.selectedLabWidget);
+    
+    // Obtenemos el código fuente de la lección seleccionada
+    final selectedLabCode = context.select<NotebookProvider, String>((p) => 
+        p.selectedLesson?.labCode ?? 'Selecciona una lección para ver el código.');
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
@@ -114,7 +119,16 @@ class LabWidget extends StatelessWidget {
       child: Container(
         key: ValueKey(selectedLessonId ?? 'initial'),
         color: Colors.transparent,
-        child: selectedLabWidget,
+        
+        // ¡LA MAGIA SUCEDE AQUÍ!
+        // Si no hay lección elegida, mostramos el widget vacío. 
+        // Si la hay, lo envolvemos en nuestro visor aislado de código.
+        child: selectedLessonId == null 
+            ? selectedLabWidget
+            : LabCodeViewer(
+                code: selectedLabCode,
+                child: selectedLabWidget,
+              ),
       ),
     );
   }
